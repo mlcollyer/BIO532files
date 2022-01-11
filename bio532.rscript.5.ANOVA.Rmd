@@ -1,0 +1,117 @@
+---
+title: "BIO532 ANOVA"
+author: "Michal L Collyer"
+output: html_document
+---
+
+```{r setup, include=TRUE, echo = TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# The same examples as in Chapter 5
+
+IMPORTANT! BEFORE GOING FURTHER, DO THESE TWO THINGS in R"
+
+install.packages("devtools") (Do this just this once)
+
+devtools::install_github("mlcollyer/RRPP", 
+                         build_vignettes = TRUE) (Do this every script)
+                         
+The reason for this is that `RRPP` is a packaged published on CRAN but updating it on CRAN takes a long time.  Since the instructor is also the `RRPP` author, updates can be made instantly on `Github`.  Installing directly from `Githuib` every `R` session means having the latest updates.
+
+
+# Read in the pupfish MR data
+Either use the Import Dataset tab or change working directory to where the `pupfish.mr.csv` file is found and run command below.  (To change the directory in R Studio: Session --> Set Working Directory --> Choose location.  A pop-up window will appear.)
+
+```{r, include=TRUE, echo=TRUE}
+pupfish.mr <- read.csv("pupfish.mr.csv", 
+                       header = TRUE, 
+                       stringsAsFactors = TRUE)
+
+# Add a variable to the data frame
+pupfish.mr$SMR <- pupfish.mr$MR / pupfish.mr$Mass
+
+str(pupfish.mr) # or view in Environment tab
+```
+
+# Add a variable to the data frame
+
+```{r, include=TRUE, echo=TRUE}
+```
+pupfish.mr$SMR <- pupfish.mr$MR / pupfish.mr$Mass
+
+# Plot
+```{r, include=TRUE, echo=TRUE}
+boxplot(SMR ~ Treatment, data = pupfish.mr, 
+        border = 1:2, col = "gray", notch = TRUE)
+        
+stripchart(SMR ~ Treatment, data = pupfish.mr, 
+           pch = 19, col = 1:2, vertical = TRUE,
+           add = TRUE)
+```
+
+# State null and alternative hypotheses:
+$$H_0: \sigma^2_{Treatment|\mu} = 0$$
+$$H_a: \sigma^2_{Treatment|\mu} > 0$$
+
+# Confidence level = 95% ($\alpha = 0.05$)
+
+# Fit linear model
+
+```{r, include=TRUE, echo=TRUE}
+library(RRPP) # open RRPP library
+
+fit1 <- lm.rrpp(SMR ~ Treatment, 
+                data = pupfish.mr, 
+                iter = 9, 
+                print.progress = FALSE)
+
+```
+
+# Linear model parts
+```{r, include=TRUE, echo=TRUE}
+model.matrix(fit1)
+coef(fit1)
+fitted(fit1)
+residuals(fit1)
+```
+
+# Residual diagnostics
+```{r, include=TRUE, echo=TRUE}
+plot(fit1, which = c(1, 2))
+```
+
+# Perform ANOVA
+```{r, include=TRUE, echo=TRUE}
+anova(fit1)
+```
+
+# How does RRPP change things?
+```{r, include=TRUE, echo=TRUE}
+fit2 <- lm.rrpp(SMR ~ Treatment, 
+                data = pupfish.mr, 
+                iter = 99, 
+                print.progress = FALSE)
+fit3 <- lm.rrpp(SMR ~ Treatment, 
+                data = pupfish.mr, 
+                iter = 999, 
+                print.progress = FALSE)
+fit4 <- lm.rrpp(SMR ~ Treatment, 
+                data = pupfish.mr, 
+                iter = 9999, 
+                print.progress = FALSE)
+fit5 <- lm.rrpp(SMR ~ Treatment, 
+                data = pupfish.mr, 
+                iter = 99999, 
+                print.progress = FALSE)
+
+anova(fit1)
+anova(fit2)
+anova(fit3)
+anova(fit4)
+anova(fit5)
+```           
+
+# Conclusion?
+
+### Reject $H_0$; `Treatment` important term in model; $Z$-score suggests it is a large effect

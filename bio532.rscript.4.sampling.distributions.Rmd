@@ -1,0 +1,322 @@
+---
+title: "BIO532 Hypothesis-testing with Sampling Distributions for Linear Model Statistics"
+author: "Michal L Collyer"
+output: html_document
+---
+
+```{r setup, include=TRUE, echo = TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Note that this HTML version has a lot of detail and the pure R script has little.  This document adds note; the other just has the steps.
+
+# Review of the Rattlesnake Example
+
+```{r, include = TRUE, echo = TRUE}
+set.seed(21) # This is a trick to set the seed for random numbers (not needed)
+```
+
+Recall, the data and example linear model statistics from the previous chapter.
+
+```{r, include = TRUE, echo = TRUE}
+
+y <- c(rnorm(10, mean = 0.9, sd = 0.2), rnorm(10, mean = 0.6, sd = 0.2))
+group1 <- factor(c(rep("Mexico", 10), rep("USA", 10)), 
+                 levels = c("Mexico", "USA"))
+
+df <- data.frame(y = y, group1 = group1)
+
+df
+```
+
+# Linear Model Statistics
+
+The estimation of coefficients (fitting of the model) can be performed with the `lm` function in `R`.
+
+```{r, include = TRUE, echo = TRUE}
+
+fit0 <- lm(y ~ 1, data = df)
+fit1 <- lm(y ~ group1, data = df)
+
+fit0
+fit1
+```
+
+
+We can see what the model matrices look like by using the `model.matrix` function.
+
+```{r, include = TRUE, echo = TRUE}
+X0 <- model.matrix(fit0)
+X1 <- model.matrix(fit1)
+
+X0
+X1
+```
+
+The `coef`, `fitted`, and `resid` functions allow us to observe coefficients, fitted values, and residuals, respectively.
+
+```{r, include = TRUE, echo = TRUE}
+coef(fit0)
+coef(fit1)
+```
+
+```{r, include = TRUE, echo = TRUE}
+fitted(fit0)
+fitted(fit1)
+```
+
+```{r, include = TRUE, echo = TRUE}
+resid(fit0)
+resid(fit1)
+```
+
+We can use the residuals -- the lack of fit and, therefore, the imprecision of the models -- to estimate model error.
+
+```{r, include = TRUE, echo = TRUE}
+
+e0 <- resid(fit0)
+e1 <- resid(fit1)
+
+RSS0 <- crossprod(e0)
+RSS1 <- crossprod(e1)
+
+RSS0
+RSS1
+```
+
+# Model-Comparison Statistics
+
+Model-comparison statistics compare null and alternative models.
+
+The difference in nested model error is proportional to the **effect** of adding parameters for the variable, *group1*, to the null model.  We can measure the *group1* effect as the sum of squared differences in model predictions.
+
+```{r, include = TRUE, echo = TRUE}
+SS1 <- RSS0 - RSS1
+
+SS1
+```
+
+It is a little more straightforward to express *SS* as a proportion of the overall variation in the data, using the **coefficient of determination**.
+
+```{r, include = TRUE, echo = TRUE}
+Rsq1 <- SS1 / RSS0
+
+Rsq1
+```
+
+We can also calculate a statistic that rather than representing the portion of $RSS_0$, averages the amount of variation explained by the parameters in $\mathbf{X}_1$ relative to the amount of variation not explained by them.
+
+```{r, include = TRUE, echo = TRUE}
+df1 <- ncol(X1) - ncol(X0) # degrees of freedom for the group1 1 effect 
+
+MS1 <- SS1 / df1
+
+MS1
+
+dfr1 <- nrow(X1) - ncol(X1) # degrees of freedom for the residuals
+
+MSE1 <- RSS1 / dfr1
+
+MSE1
+
+F1 <- MS1 / MSE1
+
+F1
+```
+
+# Difference between Linear Model Statistics and Model Comparison (Test) Statistics
+
++ Obviously, linear model statistics require one linear model; model-comparison (test) statistics require two.
++ As **test** statistics, model-comparisons statistics can be used in hypothesis tests.
++ Hypothesis tests require a null hypothesis and the **null model** correpsonds to the null hypothesis.
++ **Sampling distributions** are distributions of model-comparison (test) statistics generated from random outcomes of the null model, randomizing residuals.
++ The probability of observing statistics as large as the observed statistics in their sampling distributions is evidence for rejecting or not rejecting a null hypothesis.
+
+# RRPP: The method of generating sampling distributions
+
+### RRPP is $\mathcal{Y} = \mathbf{Xb} + \mathbf{e}^*$
+
+For a null model with just a vector of 1s (intercept).  Randomizing residuals is tantamount to randomizing data.  Same mean and same sample variance every random permutation.  In later chapters we will have different null models, so we will only have constant variance.
+
+Let's start by stating a null hypothesis, which we can later modify for different models, but will always have the same format.
+
+$$
+H_0: \sigma^2_{\beta_1, \mathbf{X}_1 | \beta_0, \mathbf{X}_0} = 0
+$$
+
+
+$$
+H_1: \sigma^2_{\beta_1, \mathbf{X}_1 | \beta_0, \mathbf{X}_0} > 0
+$$
+
+### How does this work?
+
+Look at this example, with three versions of $\mathcal{Y} = \mathbf{Xb} + \mathbf{e}^*$ (the observed case counts as one permutation).
+
+```{r, include = TRUE, echo = TRUE}
+y.r1 <- sample(y)
+y.r2 <- sample(y)
+fit1.r1 <- lm(y.r1 ~ group1)
+fit1.r2 <- lm(y.r2 ~ group1)
+```
+
+```{r, include = TRUE, echo = TRUE}
+y  # observed (counts as one permutation)
+y.r1 # first random permutation
+y.r2 # second random permutation
+```
+
+And if we calculate $RSS$ from linear model fits for $\mathcal{Y} ~ group1$, each time, and use these values to obtain $F$-statistics, we get
+
+```{r, include = TRUE, echo = TRUE}
+F1 <- summary(fit1)$fstatistic[1]
+F1.r1 <- summary(fit1.r1)$fstatistic[1]
+F1.r2 <- summary(fit1.r2)$fstatistic[1]
+
+
+F1 # observed (counts as one permutation)
+F1.r1 # first random permutation
+F1.r2 # second random permutation
+```
+
+Now, repeat this **MANY** times and create distributions of this statistic (plus could do this with $SS$, $MS$, $R^2$).  We will not do this one by one, but we can use a program to do it.  We must first install the conveniently names `RRPP` package.  On can do this with:
+
+`install.packages("RRPP")`
+
+Or use the drop-down tool in R-Studio.
+
+```{r, include = TRUE, echo = TRUE}
+library(RRPP)
+
+fit1.rrpp <- lm.rrpp(y ~ group1, 
+                     data = df, 
+                     print.progress = FALSE, 
+                     iter = 999)
+
+coef(fit1)
+coef(fit1.rrpp)
+
+```
+
+```{r, include = TRUE, echo = TRUE}
+attributes(fit1.rrpp)
+```
+
+Notice that an `lm.rrpp` class object has several different output bins.  Let's look at the `$LM` bin.
+
+```{r, include = TRUE, echo = TRUE}
+attributes(fit1.rrpp$LM)
+```
+
+Looks like many things we would expect!  
+
+Some example extractable components: 
+
+```{r, include = TRUE, echo = TRUE}
+fit1.rrpp$LM$n
+fit1.rrpp$LM$coefficients
+fit1.rrpp$LM$fitted
+fit1.rrpp$LM$residuals
+
+```
+
+Now let's look at the `$ANOVA` bin.
+
+```{r, include = TRUE, echo = TRUE}
+attributes(fit1.rrpp$ANOVA)
+
+```
+
+Notice there are some familiar terms, like `SS`, `MS`, `RSS`, `Rsq`, `Fs`, `n`, and `df`.  One of the unfamiliar terms, `TSS` is actually something we know; it is $RSS_0$, also known as the **total sum of squares**.  Some of the other terms will become familiar later, when we get into more complex linear models.  
+
+It is important to realize that all of these objects are not single statistics.  Each is an array of 1000 statistics, one for every iteration of RRPP.  For example:
+
+```{r, include = FALSE, echo = FALSE}
+remove("df")
+```
+
+```{r, include = TRUE, echo = TRUE}
+
+attach(fit1.rrpp$ANOVA)
+RSS
+SS
+MS
+Rsq
+Fs
+detach(fit1.rrpp$ANOVA)
+
+```
+
+It might be fun to look at each of the 1000 statistics, individually, from RRPP, but we can get further, faster, with histograms of the distributions.
+
+```{r, include = TRUE, echo = FALSE}
+
+# Let's create a 2 x 2 plotting canvas
+par(mfrow = c(2, 2))
+
+attach(fit1.rrpp$ANOVA)
+
+hist(SS, col = "gray")
+abline(v = SS[1]) # note the location of the observed value
+hist(MS, col = "gray")
+abline(v = MS[1]) # note the location of the observed value
+hist(Rsq, col = "gray")
+abline(v = Rsq[1]) # note the location of the observed value
+hist(Fs, col = "gray")
+abline(v = Fs[1]) # note the location of the observed value
+
+detach(fit1.rrpp$ANOVA)
+
+par(mfrow = c(1, 1)) # reset the canvas
+```
+
+# RRPP and the Testing of Null Hypotheses
+
+What these histograms tell us that for any of these model-comparison statistics, our observed values are rare in a sampling distribution from random outcomes **under the null hypothesis**.  However, it was possible to randomly obtain statistics even greater than the ones we observe.  We can even calculate the probabilities of randomly generating an outcome as or more excessive than our observed case, **by chance**.
+
+
+```{r, include = TRUE, echo = TRUE}
+
+# Let's create a 2 x 2 plotting canvas
+attach(fit1.rrpp$ANOVA)
+
+# where our observed value ranks from small to large
+rank(SS)[1] 
+# probability of finding a value larger 
+1 - rank(SS)[1] / length(SS) 
+# probability of finding a value as large or larger 
+1 - (rank(SS)[1] - 1) / length(SS) 
+
+# and likewise
+1 - (rank(MS)[1] - 1) / length(MS) 
+1 - (rank(Rsq)[1] - 1) / length(Rsq) 
+1 - (rank(Fs)[1] - 1) / length(Fs) 
+
+detach(fit1.rrpp$ANOVA)
+
+```
+
+Notice that the probability of finding a random statistic as large as our observed was the same, regardless of the statistic we used.  In fact, $SS$, $MS$, $R^2$, and $F$ are all perfectly **rank-order** correlated.  What this means is that if permutation 532 gave us the smallest $SS$, it also gave us the smallest $MS$, $R^2$, and $F$.  If we ordered the values for each statistic from small to large, the order would be the exact same in terms of the random permutations that produced the statistics.  ***This will not always be true when we start to consider more complex models with multiple hypotheses*** but for now we can appreciate that these four statistics all (1) compare model $RSS$ and (2) can be used as **test statistics** for evaluating the null hypothesis.
+
+```{r, include = TRUE, echo = TRUE}
+attach(fit1.rrpp$ANOVA)
+par(mfrow = c(1, 3))
+plot(SS, Fs, pch = 19)
+plot(Rsq, Fs, pch = 19)
+plot(SS, Rsq, pch = 19)
+detach(fit1.rrpp$ANOVA)
+```
+
+# RRPP and the Testing of Null Hypotheses
+
+### This is rejected
+$$
+H_0: \sigma^2_{\beta_1, \mathbf{X}_1 | \beta_0, \mathbf{X}_0} = 0
+$$
+
+### This is accepted
+$$
+H_1: \sigma^2_{\beta_1, \mathbf{X}_1 | \beta_0, \mathbf{X}_0} > 0
+$$
+Conclusion: The means between Mexico and USA snakes are **significantly different**.  (This is incomplete, but we will discuss that next time.)
+

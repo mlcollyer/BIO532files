@@ -1,0 +1,105 @@
+---
+title: "BIO532 Single-factor ANOVA"
+author: "Michal L Collyer"
+output: html_document
+---
+
+```{r setup, include=TRUE, echo = TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# The same examples as in Chapter 6
+
+IMPORTANT! BEFORE GOING FURTHER, DO THESE TWO THINGS in R"
+
+install.packages("devtools") (Do this just this once)
+
+devtools::install_github("mlcollyer/RRPP", 
+                         build_vignettes = TRUE) (Do this every script)
+                         
+The reason for this is that `RRPP` is a packaged published on CRAN but updating it on CRAN takes a long time.  Since the instructor is also the `RRPP` author, updates can be made instantly on `Github`.  Installing directly from `Githuib` every `R` session means having the latest updates.
+
+
+# Read in the calluna data
+Either use the Import Dataset tab or change working directory to where the `calluna.csv` file is found and run command below.  (To change the directory in R Studio: Session --> Set Working Directory --> Choose location.  A pop-up window will appear.)
+
+```{r, include=TRUE, echo=TRUE}
+calluna <- read.csv("calluna.csv", 
+                       header = TRUE, 
+                       stringsAsFactors = TRUE)
+
+str(calluna) # or view in Environment tab
+
+calluna <- calluna[c("treatment", "cn.ratio")] # eliminate unneeded columns
+calluna <- na.omit(calluna) # Eliminate rows with NA as values
+str(calluna)
+```
+
+
+# Plot
+```{r, include=TRUE, echo=TRUE}
+boxplot(cn.ratio ~ treatment, data = calluna, 
+        border = 1:4, col = "gray")
+stripchart(cn.ratio ~ treatment, data = calluna, 
+           pch = 19, col = 1:4, vertical = TRUE,
+           add = TRUE)
+```
+
+# State null and alternative hypotheses:
+$$H_0: \sigma^2_{Treatment|\mu} = 0$$
+$$H_a: \sigma^2_{Treatment|\mu} > 0$$
+
+# Confidence level = 95% ($\alpha = 0.05$)
+
+# Fit linear model
+
+```{r, include=TRUE, echo=TRUE}
+library(RRPP) # open RRPP library
+
+fit1 <- lm.rrpp(cn.ratio ~ treatment, 
+                data = calluna, 
+                iter = 9999, 
+                print.progress = FALSE)
+
+
+```
+
+# Linear model parts
+```{r, include=TRUE, echo=TRUE}
+
+model.matrix(fit1)
+coef(fit1)
+fitted(fit1)
+residuals(fit1)
+
+```
+
+# Residual diagnostics
+```{r, include=TRUE, echo=TRUE}
+plot(fit1, which = c(1, 2))
+```
+
+# Perform ANOVA
+```{r, include=TRUE, echo=TRUE}
+anova(fit1)
+```
+
+# Conclusion?
+
+### Reject $H_0$; `treatment` important term in model; $Z$-score suggests it is a large effect
+
+# We are not done !!!
+
+We have multiple potential reasons for why this null hypothesis is rejected.
+
+```{r, include=TRUE, echo=TRUE}
+PW <- pairwise(fit1, groups = calluna$treatment)
+summary(PW, confidence = 0.95, show.vectors = TRUE)
+```
+# Conclusion?
+
+In terms of means,
++ D no different than Control
++ N > Control
++ D + N > Control
++ D + N > N?  (Close but cannot reject H0)  Can say the result is "marginally" significant, but this biological interpretation must be germane.

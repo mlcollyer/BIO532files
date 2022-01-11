@@ -1,0 +1,167 @@
+---
+title: "BIO532 The General Linear Model in R"
+author: "Michal L Collyer"
+output: html_document
+---
+
+```{r setup, include=TRUE, echo = TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# The same examples as in Chapter 3
+
+In `R`, a randomization can be controlled by selecting the random seed (starting point).  The script below does this, so results will match the Chapter 3 example.  One could change the seed to get different random results.
+
+```{r}
+set.seed(21) # This is a trick to set the seed for random numbers (not needed)
+```
+
+
+# Create random data and groups 
+
+```{r}
+y <- c(rnorm(10, mean = 0.9, sd = 0.2), rnorm(10, mean = 0.6, sd = 0.2))
+y
+
+group1 <- factor(c(rep("Mexico", 10), rep("USA", 10)), levels = c("Mexico", "USA"))
+group2 <- factor(c(rep("Mexico", 10), rep("AZ-NM", 5), rep("NM", 5)), 
+                 levels = c("Mexico", "AZ-NM", "NM"))
+
+group1
+group2
+```
+
+# Make a data frame (always a good idea!)
+
+```{r}
+df <- data.frame(y = y, group1 = group1, group2 = group2)
+
+df
+```
+
+# Plots
+```{r}
+par(mfrow = c(1, 2)) # make a two-panel canvas, by row
+
+# Strip-chart style plots
+stripchart(y ~ group1, pch = 19, data = df, vertical = TRUE)
+stripchart(y ~ group2, pch = 19, data = df, vertical = TRUE)
+
+par(mfrow = c(1, 1)) # Reset the canvas
+```
+
+# GLM Steps
+
+Let's do the first few steps by hand.
+
+### Model (design) matrices
+
+```{r}
+X0 <- model.matrix(y ~ 1, data = df)
+X1 <- model.matrix(y ~ group1, data = df)
+X2 <- model.matrix(y ~ group2, data = df)
+
+X0
+X1
+X2
+```
+
+### Coefficients
+
+```{r}
+b0 <- solve(crossprod(X0)) %*% crossprod(X0, y)
+b1 <- solve(crossprod(X1)) %*% crossprod(X1, y)
+b2 <- solve(crossprod(X2)) %*% crossprod(X2, y)
+
+b0
+b1
+b2
+```
+Now let's switch to relying on `R` for help.
+
+```{r}
+fit0 <- lm(y~ 1, data = df)
+fit1 <- lm(y~ group1, data = df)
+fit2 <- lm(y~ group2, data = df)
+
+# coefficients
+
+coef(fit0)
+coef(fit1)
+coef(fit2)
+
+# fitted values
+
+fitted(fit0)
+fitted(fit1)
+fitted(fit2)
+
+# residuals
+
+resid(fit0)
+resid(fit1)
+resid(fit2)
+
+```
+
+# Calculating model error
+
+```{r}
+e0 <- resid(fit0)
+e1 <- resid(fit1)
+e2 <- resid(fit2)
+
+# RSS
+
+RSS0 <- crossprod(e0)
+RSS1 <- crossprod(e1)
+RSS2 <- crossprod(e2)
+
+RSS0
+RSS1
+RSS2
+```
+
+# Really relying on `R` for help! 
+
+Let's use teh summary function to get most statistics.
+
+```{r}
+summary(fit1)
+summary(fit2)
+```
+
+# How R finds $R^2$ and $F$
+
+It is worth seeing what `R` does behind the scenes.
+
+```{r}
+MS1 <- (RSS0 - RSS1) / (ncol(X1) - ncol(X0))
+MSE1 <- RSS1 / (nrow(X1) - ncol(X1))
+
+MS1 / MSE1 # F stat
+(RSS0 - RSS1) / RSS0 # Rsq
+sqrt(MSE1) # SE of model
+
+MS2 <- (RSS0 - RSS2) / (ncol(X2) - ncol(X0))
+MSE2 <- RSS2 / (nrow(X2) - ncol(X2))
+
+MS2 / MSE2 # F stat
+(RSS0 - RSS2) / RSS0 # Rsq
+sqrt(MSE2) # SE of model
+```
+
+# Diagnostics
+
+Always a good idea to evaluate the assumption of normality/homoscedasticity
+
+```{r}
+par(mfrow = c(1,2)) # 1 x 2 plotting canvas
+plot(fit1, which = 1:2)
+
+par(mfrow = c(1,2)) # 1 x 2 plotting canvas
+plot(fit2, which = 1:2)
+
+par(mfrow = c(1,2)) # reset canvas
+```
+
