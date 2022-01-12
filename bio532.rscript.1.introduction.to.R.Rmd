@@ -87,7 +87,7 @@ The purer way (if you like command line text)"
   + Find the directory where the spreadsheet is saved.
   
 ```{r, include = FALSE, echo = FALSE}
-lowbwt <- read.csv("https://raw.githubusercontent.com/mlcollyer/chatham.bio532/master/Data/lowbwt.csv")
+lowbwt <- read.csv("https://raw.githubusercontent.com/mlcollyer/BIO532files/master/lowbwt.csv")
 ```
 
   
@@ -120,7 +120,7 @@ Note that any spreadsheet in Excel can be saved as a text file.  One must do thi
 NOTE, When one wants to read a file from a URL directly into R....
 
 ```{r, include = TRUE, echo = FALSE}
-lowbwt <- read.csv("https://raw.githubusercontent.com/mlcollyer/chatham.bio532/master/Data/lowbwt.csv")
+lowbwt <- read.csv("https://raw.githubusercontent.com/mlcollyer/BIO532files/master/lowbwt.csv")
 ```
 
 ### Playing with the data

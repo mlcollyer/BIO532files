@@ -95,7 +95,7 @@ Y # each row is a subject with three values for three variables/variates
 # Go to "Set Working Directory"
 # Find the directory where the spreadsheet is saved.
 
-lowbwt = read.csv("low.bwt.csv",header=T)
+lowbwt = read.csv("lowbwt.csv",header=T)
 
 # look at the data in the environment (click on it in the environment - opens a spreadsheet)
 
@@ -127,7 +127,7 @@ View(lowbwt)
 
 # When one wants to read a file from a URL directly into R....
 
-lowbwt <- read.csv("https://raw.githubusercontent.com/mlcollyer/chatham.bio532/master/Data/lowbwt.csv")
+lowbwt <- read.csv("https://raw.githubusercontent.com/mlcollyer/BIO532files/master/lowbwt.csv")
 
 # Note that quotes are used around the URL or file name.  They can be single or double quotes.
 
